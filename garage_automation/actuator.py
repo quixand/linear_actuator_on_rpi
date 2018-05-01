@@ -62,5 +62,5 @@ class Actuator:
     def fail_safe_timeout(self):
         """Shut down actuator after known travel time"""
         self.logger.info(__name__ + "what happens if the button is pushed again while the actuator in in motion?")
-        self.fail_safe_thread = threading.Timer(30.0, Actuator.shutdown_actuator(self))
+        self.fail_safe_thread = threading.Timer(30.0, self.shutdown_actuator)
         self.fail_safe_thread.start()

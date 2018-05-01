@@ -47,7 +47,7 @@ class Control:
             # to explicitly state the mechanism is fully open
             # we will probably need this for the electronic door opener though
             self.logger.debug("Setting failsafe timeout thread")
-            self.open_thread = threading.Timer(self.configs['actuator_full_stroke_duration'], self.set_door_open())
+            self.open_thread = threading.Timer(self.configs['actuator_full_stroke_duration'], self.set_door_open)
             self.open_thread.start()
             self.actuator.open()
         else:
