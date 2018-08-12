@@ -5,12 +5,15 @@ from time import sleep
 import threading
 
 # todo
+# - check for door or bolt sensor changes outside of operation and trigger alarm
+# - investigate thread termination when door operation interrupted
+# - integrate door sensors
+# - make sure everything is non-blocking to allow for things like overcurrent detection
 # on script start if position is limbo, don't do anything, default state should be 'closed'
 # so that user switch trigger will perform 'open' operation
 
 
 class Control:
-    """ on powerup its assumed that the door is closed, sensor readings will then dictate the course of any actions """
 
     door_closed = False
     state_change_button_activated = False
@@ -27,7 +30,7 @@ class Control:
         """Handle multiple button pushes"""
         if self.state_change_button_activated:
             self.logger.info(__name__ + ' Button push detected, but we\'re already doing something. '
-                                        'assuming shutdown/reset requested')
+                                        'assuming emergency stop requested')
             self.door_closed = True
             self.actuator.shutdown_actuator()
             self.state_change_button_activated = False
@@ -35,7 +38,7 @@ class Control:
             self.indicators.sad()
             return
 
-        self.logger.info("change state called")
+        self.logger.info("************ change state called *************")
         self.state_change_button_activated = True
 
         # lets give the requester time to release the button before we perform any logic
@@ -56,12 +59,20 @@ class Control:
 
     def check_lock_state(self):
         """ verify all sensor inputs to determine state of door
-            the door is either open-unlocked or closed-locked"""
+            the door can be
+             - open-unlocked
+             - closed-locked
+             - closed-Unlocked
+
+            If sensors indicate door is open after successful close status then either the sensors have failed
+            or the door has been forced open, raise alarm.
+        """
         self.check_for_overcurrent()
 
-        # if door is trying to close and bolt has engaged, door is now locked
+        # if door is trying to close(in operation) and bolt has engaged and door sensors engaged,
+        # door is now closed-locked
         if self.state_change_button_activated and \
-                self.sensors.check_bolt_closed_limit_switch() and \
+                'Locked' == self.sensors.check_bolt_closed_limit_switch() and \
                 not self.door_closed:
             self.door_closed = True
             self.logger.info('self.door_closed: ' + str(self.door_closed))
@@ -69,9 +80,18 @@ class Control:
             self.state_change_button_activated = False
             self.indicators.happy()
 
-        self.logger.debug("Voltage: " + str(self.sensors.actuator_voltage()))
-        self.logger.debug("Current: " + str(self.sensors.actuator_current()))
-        self.logger.debug("door bolt locked: " + str(self.sensors.check_bolt_closed_limit_switch()))
+        # check if door is open when it shouldn't be
+        if 'Open' == self.sensors.check_door_sensor() and self.door_closed:
+            self.door_closed = False
+            self.indicators.sad()
+            self.logger.info('********* DOOR OPEN DETECTED *********: ' + str(self.door_closed))
+
+    def startup_check(self):
+        # on startup state is unknown unless these sensors indicate door is closed-locked
+        if 'Locked' == self.sensors.check_bolt_closed_limit_switch() and \
+                'Closed' == self.sensors.check_door_sensor():
+            self.door_closed = True
+            self.indicators.happy()
 
     def set_door_open(self):
         self.door_closed = False
@@ -90,5 +110,8 @@ class Control:
             self.state_change_button_activated = False
             self.indicators.sad()
 
+    def get_logical_door_state(self):
+        return self.door_closed
 
-
+    def get_operational_state(self):
+        return self.state_change_button_activated

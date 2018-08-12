@@ -1,0 +1,43 @@
+wiring diagram, see pinout image
+
+pin(GPIO) -> device
+1
+2
+3(2)		INA219-SDA
+4
+5(3)		INA219-SCL
+6
+7(4)		Door Action Switch (pulled high via resistor 10k)
+8
+9
+10
+11(17)		Limit switch (pulled low via resistor 10k)
+12
+13(17)		door closed sensors (chained pair)
+14
+15
+16(23)			LED red
+17
+18(24)			LED green
+19
+20
+21
+22
+23
+24(8)		L298-IN2
+25
+26(7)		L298-IN1
+
+
+Devices
+
+INA219
+VCC - 3.3v rail
+VIN+ - 12v high current supply
+VIN- - 12v input on L298
+
+L298 h-bridge driver
+out1 - actuator red
+out2 - actuator black
+
+
