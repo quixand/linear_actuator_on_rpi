@@ -34,13 +34,19 @@ class Actuator:
         self.shutdown_actuator()
         self.in_motion = False
         self.fail_safe_thread = None
+        self.actuator_opening = False
+        self.actuator_closing = False
 
     def open(self):
         self.in_motion = True
+        self.actuator_opening = True
+        self.actuator_closing = False
         self.reverse()
 
     def close(self):
         self.in_motion = True
+        self.actuator_opening = False
+        self.actuator_closing = True
         self.forward()
 
     def forward(self):
@@ -58,12 +64,13 @@ class Actuator:
         self.gpio.output(self.backwards_pin, self.gpio.LOW)
         self.gpio.output(self.forwards_pin, self.gpio.LOW)
         self.in_motion = False
+        self.actuator_opening = False
+        self.actuator_closing = False
         self.clear_failsafe()
         self.logger.debug(__name__ + ' Actuator stopped, pins set low')
 
     def fail_safe_timeout(self):
         """Shut down actuator after known travel time, should be terminated if emergency shutdown requested"""
-        self.logger.info(__name__ + "what happens if the button is pushed again while the actuator in in motion?")
         self.fail_safe_thread = threading.Timer(10.0, self.shutdown_actuator)
         self.fail_safe_thread.start()
 

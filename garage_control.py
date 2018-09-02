@@ -14,31 +14,30 @@
 # clear; echo "" > /var/log/automation/pi.log ;./garage_control.py
 # monitor log on pi
 # watch cat /var/log/automation/pi.log
+# check threads
+# pstree `pidof python3`
 
+# on script start if we don't know the position of the actuator from the limit switch we perform an initial open
+# operation when the button is pushed, this safely puts us into a known state
 
-# TODO
-# create pip requirements doc, install with ansible?
-# add logging
-# now we have a door closed sensor we can dictate the direction of the actuator when door button activated
+# TODO - create pip requirements doc
+# todo - install with ansible
 
 # import sys
 import RPi.GPIO as GPIO
 import time
 import logging
 import garage_automation
-# from garage_automation.sensors import Sensors
-# from garage_automation.indicators import Indicators
-# from garage_automation.terminal_status import TerminalStatus
 
-
+# todo - move to file
 configs = {
-    'over_current_threshold': 1000,  # milliamps
+    'over_current_threshold': 550,  # milliamps
     'actuator_full_stroke_duration': 10,  # seconds
     'led_red_pin': 16,
     'led_green_pin': 18
 }
 
-# globals, move to configs class?
+# todo - move to configs
 actuator_pin_forwards = 24
 actuator_pin_backwards = 26
 switch_input = 7
@@ -47,9 +46,9 @@ bolts_closed_sensor = 11
 door_closed_sensor = 13
 
 
-# ansible defines this log path
+# this log path must exist as the logging class can't create it, we need to create on deployment with ansible
 # logging.basicConfig(format='%(asctime)s %(message)s', filename='/var/log/automation/pi.log', level=logging.DEBUG)
-logging.basicConfig(format='%(asctime)s %(message)s', filename='/var/log/automation/pi.log', level=logging.ERROR)
+logging.basicConfig(format='%(asctime)s %(message)s', filename='/var/log/automation/pi.log', level=logging.INFO)
 # logging.debug('This message should go to the log file')
 logging.info('Script startup')
 # logging.warning('And this, too')
@@ -84,6 +83,7 @@ except Exception as e:
 
 sensors = None
 control = None
+indicators = None
 try:
     indicators = garage_automation.Indicators(logging, GPIO, configs)
     sensors = garage_automation.Sensors(logging, bolts_closed_sensor, door_closed_sensor, switch_input)
@@ -101,12 +101,26 @@ except Exception as e:
 # mode = GPIO.getmode()
 # print " mode =" + str(mode)
 
-
 try:
-    control.startup_check()
+    # on startup, if we don't have a signal from the actuator limit switch we should assume its not fully retracted
+    # so to get into a known state we need to retract the actuator on the first action request
+    # after that we should always know what state we are in and this makes the rest of the logic much simpler
+    # todo - how will this work with the remote? if the program restarts it will be stuck at this stage
+    # FIX: wire remote relay into action switch so it mechanically operates button, it will then work even on startup
+    while True:
+        if control.check_locked():
+            break
+
+        if not sensors.check_action_button():
+            control.on_start_retract()
+            break
+
+        time.sleep(0.1)
+
+# Main loop
     while True:
         # switch pulls low so we need to look for inverted state, slightly confusing
-        if not GPIO.input(switch_input):
+        if not sensors.check_action_button():
             control.change_state()
         # no interupts on the pi so we need to monitor the switch pin, better with threads?
         # https://stackoverflow.com/questions/22180915/non-polling-non-blocking-timer
@@ -115,7 +129,8 @@ try:
         control.check_lock_state()
         garage_automation.TerminalStatus.update_terminal(sensors, control)
         sensors.log_sensor_state()
-        time.sleep(0.5)
+        # indicators.heartbeat() kind of annoying
+        time.sleep(0.2)
 
 except KeyboardInterrupt as e:
     logging.warning('Cought KeyboardInterrupt' + str(e))

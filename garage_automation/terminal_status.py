@@ -3,6 +3,7 @@
 # This class manages non-scrolling output to the terminal
 # This allows a better realtime view of voltage and current and sensor state without having to dig
 # through lots of debug output in the log, of course all of this data still goes to the log file
+# todo set flag to disable this when run as deamon
 
 
 class TerminalStatus:
@@ -17,6 +18,6 @@ class TerminalStatus:
             + ' bolt sensor: ' + str(sensors.check_bolt_closed_limit_switch())
             + ' action button: ' + str(sensors.check_action_button())
             + ' door sensor: ' + str(sensors.check_door_sensor())
-            + ' Logical door state: ' + str(control.get_logical_door_state())
+            + ' Logical door state: ' + control.get_logical_door_state()
             + ' Operational state: ' + str(control.get_operational_state())
             + '                ', end='\r')

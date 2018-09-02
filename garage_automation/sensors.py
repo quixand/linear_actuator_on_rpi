@@ -3,12 +3,8 @@
 from garage_automation.power_sensor import PowerSensors
 import RPi.GPIO as GPIO
 
-# todo
-# on script-start if position is limbo, don't do anything, wait for button operation
-
 
 class Sensors:
-    """ static methods to read the sensors """
 
     def __init__(self, logging, bolts_closed_sensor, door_closed_sensor, switch_input):
         self.logger = logging
@@ -38,6 +34,8 @@ class Sensors:
         else:
             return 'Open'
 
+    # todo - we should only log booleans when they change to reduce log spam
+    # todo - only log voltage and current during operational state changes, but keep debug logging
     def log_sensor_state(self):
         self.logger.debug("Voltage: " + str(self.actuator_voltage()))
         self.logger.debug("Current: " + str(self.actuator_current()))
