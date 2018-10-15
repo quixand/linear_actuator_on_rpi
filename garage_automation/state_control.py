@@ -4,18 +4,19 @@
 from time import sleep
 import threading
 
-# todo check for door or bolt sensor changes outside of operation and trigger alarm
-# todo spawn thread for overcurrent detection so its not affected by blocking operations
-
 
 class Control:
 
     door_closed = False
     state_change_button_activated = False
     open_thread = None
-    unexpected_door_open = None
+    unexpected_door_sensors_open = None
+    unexpected_door_actuator_open = None
 
     def __init__(self, logging, actuator, sensors, indicators, configs):
+        """
+
+        """
         self.actuator = actuator
         self.logger = logging
         self.sensors = sensors
@@ -53,6 +54,7 @@ class Control:
             self.actuator.close()
         else:
             self.indicators.user_warning(4)
+            self.indicators.happy()
             self.logger.warning("Warning: cannot lock door while door sensors disengaged.")
             self.state_change_button_activated = False
 
@@ -82,9 +84,16 @@ class Control:
         # check if door is open when it shouldn't be
         if 'Open' == self.sensors.check_door_sensor() and self.door_closed and not self.state_change_button_activated:
             self.indicators.sad()
-            if not self.unexpected_door_open:
-                self.logger.warning('********* UNEXPECTED DOOR OPEN DETECTED *********: ' + str(self.door_closed))
-                self.unexpected_door_open = True
+            if not self.unexpected_door_sensors_open:
+                self.logger.warning('********* UNEXPECTED DOOR SENSORS OPEN DETECTED *********: ' + str(self.door_closed))
+                self.unexpected_door_sensors_open = True
+
+        # check if actuator sensor has unexpectedly disengaged
+        if 'Locked' != self.sensors.check_bolt_closed_limit_switch() and self.door_closed and not self.state_change_button_activated:
+            self.indicators.sad()
+            if not self.unexpected_door_actuator_open:
+                self.logger.warning('********* UNEXPECTED DOOR ACTUATOR OPEN DETECTED *********: ' + str(self.door_closed))
+                self.unexpected_door_actuator_open = True
 
         # check if door has opened during actuator close operation
         if 'Open' == self.sensors.check_door_sensor() and self.actuator.actuator_closing:
@@ -101,13 +110,13 @@ class Control:
         if 'Locked' == self.sensors.check_bolt_closed_limit_switch() and \
                 'Closed' == self.sensors.check_door_sensor():
             self.door_closed = True
-            self.unexpected_door_open = False
+            self.unexpected_door_sensors_open = False
             self.indicators.happy()
             return True
 
     def set_door_open(self):
         self.door_closed = False
-        self.logger.info(__name__ + str(self.door_closed))
+        self.logger.info(__name__ + "" + str(self.door_closed))
         self.actuator.shutdown_actuator()
         self.state_change_button_activated = False
         self.indicators.happy()
@@ -135,7 +144,7 @@ class Control:
 
     def wait_for_action_button_release(self):
         self.logger.info("checking for action button release")
-        while not bool(self.sensors.check_action_button()):
+        while bool(self.sensors.check_action_button()):
             self.logger.info("Waiting for action button release: " + str(self.sensors.check_action_button()))
             sleep(0.5)
 

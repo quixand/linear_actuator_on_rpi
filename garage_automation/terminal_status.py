@@ -5,6 +5,8 @@
 # through lots of debug output in the log, of course all of this data still goes to the log file
 # todo set flag to disable this when run as deamon
 
+import threading
+
 
 class TerminalStatus:
     def update_terminal(sensors, control):
@@ -14,10 +16,15 @@ class TerminalStatus:
 
         print('Voltage: ' + str(sensors.actuator_voltage())
 
-            + ' Current: ' + str(round(sensors.actuator_current(), 2))
-            + ' bolt sensor: ' + str(sensors.check_bolt_closed_limit_switch())
-            + ' action button: ' + str(sensors.check_action_button())
-            + ' door sensor: ' + str(sensors.check_door_sensor())
+            + ' Current: '            + str(round(sensors.actuator_current(), 2))
+            + ' bolt sensor: '        + str(sensors.check_bolt_closed_limit_switch())
+            + ' door sensor: '        + str(sensors.check_door_sensor())
             + ' Logical door state: ' + control.get_logical_door_state()
-            + ' Operational state: ' + str(control.get_operational_state())
+            + ' Operational state: '  + str(control.get_operational_state())
+            + ' threads: ' + str(threading.active_count())
             + '                ', end='\r')
+
+
+
+
+

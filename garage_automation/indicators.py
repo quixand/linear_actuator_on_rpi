@@ -10,6 +10,7 @@ class Indicators:
         self.gpio = gpio
         self.logger = logger
         self.configs = configs
+        self.indicator_thread = None
 
         # set default state red on, green off
         self.gpio.output(self.configs['led_green_pin'], self.gpio.LOW)
@@ -37,3 +38,5 @@ class Indicators:
             self.gpio.output(self.configs['led_red_pin'], self.gpio.LOW)
             time.sleep(0.5)
             i += 1
+
+    # def in_motion(self ):

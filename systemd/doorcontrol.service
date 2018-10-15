@@ -1,0 +1,14 @@
+# install into /etc/systemd/system set 644
+# sudo systemctl daemon-reload
+# sudo systemctl enable myscript.service
+
+[Unit]
+Description=Door control
+After=multi-user.target
+
+[Service]
+Type=simple
+ExecStart=/opt/door_control/start_daemon.py
+
+[Install]
+WantedBy=multi-user.target

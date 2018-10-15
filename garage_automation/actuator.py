@@ -19,7 +19,8 @@
 #
 # we also need to shutdown the actuator after the known time it takes to engage fully closed or open, if the sensors
 # fail for any reason we don't want the motor/driver board running too long. This is required for an open operation
-# anyway as we dont have any sensors to determine that actuator has fully retracted, so we'll have to background time it
+# anyway as we don't have any sensors to determine that actuator has fully retracted,
+# so we'll have to background time it
 
 import threading
 
@@ -41,13 +42,13 @@ class Actuator:
         self.in_motion = True
         self.actuator_opening = True
         self.actuator_closing = False
-        self.reverse()
+        self.forward()
 
     def close(self):
         self.in_motion = True
         self.actuator_opening = False
         self.actuator_closing = True
-        self.forward()
+        self.reverse()
 
     def forward(self):
         self.fail_safe_timeout()
@@ -55,7 +56,6 @@ class Actuator:
         self.logger.info(__name__ + ' forwarding running  motor ')
 
     def reverse(self):
-
         self.fail_safe_timeout()
         self.gpio.output(self.backwards_pin, self.gpio.HIGH)
         self.logger.info(__name__ + ' backwards running  motor ')
